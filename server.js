@@ -38,8 +38,9 @@ async function initDb() {
 }
 
 initDb().then(() => {
-  app.listen(PORT, () => {
-    console.log(`🚀  GitHub Profile Analyzer running on port ${PORT}`);
+  console.log('[server] process.env.PORT =', process.env.PORT);
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀  GitHub Profile Analyzer running on 0.0.0.0:${PORT}`);
     console.log(`    Health: http://localhost:${PORT}/api/health`);
   });
 });
