@@ -1,0 +1,176 @@
+{
+  "info": {
+    "name": "GitHub Profile Analyzer API",
+    "description": "REST API that fetches GitHub user profile data, computes insights, and persists results in MySQL.\n\nBase URL: http://localhost:3000\n\n## Endpoints\n- POST /api/analyze/:username — Analyze a GitHub profile\n- GET /api/profiles — List all stored profiles\n- GET /api/profiles/:username — Get one profile\n- DELETE /api/profiles/:username — Delete a profile\n- GET /api/health — Health check",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string",
+      "description": "Change this to your deployed URL for live testing"
+    },
+    {
+      "key": "username",
+      "value": "torvalds",
+      "type": "string",
+      "description": "GitHub username to analyze"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "health"]
+        },
+        "description": "Returns server and database status. Useful for deployment health checks."
+      },
+      "response": [
+        {
+          "name": "200 OK - Server and DB healthy",
+          "status": "OK",
+          "code": 200,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"status\": \"ok\",\n  \"db\": \"connected\",\n  \"uptime\": 1234\n}"
+        }
+      ]
+    },
+    {
+      "name": "Analyze GitHub Profile",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/analyze/{{username}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "analyze", "{{username}}"]
+        },
+        "description": "Fetches the GitHub profile for the given username, computes insights (top language, account age, repos per year), and stores/updates in MySQL.\n\nReturns cached data if analyzed within the last hour."
+      },
+      "response": [
+        {
+          "name": "200 OK - Profile analyzed and stored",
+          "status": "OK",
+          "code": 200,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"id\": 1,\n  \"username\": \"torvalds\",\n  \"name\": \"Linus Torvalds\",\n  \"bio\": null,\n  \"location\": \"Portland, OR\",\n  \"avatar_url\": \"https://avatars.githubusercontent.com/u/1024025?v=4\",\n  \"github_url\": \"https://github.com/torvalds\",\n  \"public_repos\": 12,\n  \"public_gists\": 1,\n  \"followers\": 305829,\n  \"following\": 0,\n  \"top_language\": \"C\",\n  \"account_age_days\": 5388,\n  \"repos_per_year\": 0.81,\n  \"github_created_at\": \"2011-09-03T15:26:22.000Z\",\n  \"analyzed_at\": \"2026-06-05T10:35:22.000Z\",\n  \"updated_at\": \"2026-06-05T10:35:22.000Z\"\n}"
+        },
+        {
+          "name": "404 Not Found - GitHub user does not exist",
+          "status": "Not Found",
+          "code": 404,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"error\": \"GitHub user 'unknownuser' not found.\"\n}"
+        },
+        {
+          "name": "429 Too Many Requests - GitHub rate limit exceeded",
+          "status": "Too Many Requests",
+          "code": 429,
+          "header": [
+            { "key": "Content-Type", "value": "application/json" },
+            { "key": "Retry-After", "value": "60" }
+          ],
+          "body": "{\n  \"error\": \"GitHub API rate limit exceeded.\",\n  \"retryAfter\": 60\n}"
+        }
+      ]
+    },
+    {
+      "name": "List All Profiles",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/profiles?limit=20&offset=0",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "profiles"],
+          "query": [
+            {
+              "key": "limit",
+              "value": "20",
+              "description": "Number of results (default 20, max 100)"
+            },
+            {
+              "key": "offset",
+              "value": "0",
+              "description": "Pagination offset (default 0)"
+            }
+          ]
+        },
+        "description": "Returns all stored profiles, newest first.\n\nSupports pagination via `limit` and `offset` query parameters."
+      },
+      "response": [
+        {
+          "name": "200 OK - List of profiles",
+          "status": "OK",
+          "code": 200,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "[\n  {\n    \"id\": 1,\n    \"username\": \"torvalds\",\n    \"name\": \"Linus Torvalds\",\n    \"location\": \"Portland, OR\",\n    \"public_repos\": 12,\n    \"followers\": 305829,\n    \"top_language\": \"C\",\n    \"account_age_days\": 5388,\n    \"repos_per_year\": 0.81,\n    \"analyzed_at\": \"2026-06-05T10:35:22.000Z\"\n  }\n]"
+        }
+      ]
+    },
+    {
+      "name": "Get Profile by Username",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/profiles/{{username}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "profiles", "{{username}}"]
+        },
+        "description": "Returns the stored profile for one specific GitHub username.\n\nReturns 404 if the username has not been analyzed yet."
+      },
+      "response": [
+        {
+          "name": "200 OK - Profile found",
+          "status": "OK",
+          "code": 200,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"id\": 1,\n  \"username\": \"torvalds\",\n  \"name\": \"Linus Torvalds\",\n  \"bio\": null,\n  \"location\": \"Portland, OR\",\n  \"public_repos\": 12,\n  \"followers\": 305829,\n  \"top_language\": \"C\",\n  \"account_age_days\": 5388,\n  \"repos_per_year\": 0.81,\n  \"analyzed_at\": \"2026-06-05T10:35:22.000Z\"\n}"
+        },
+        {
+          "name": "404 Not Found - Profile not yet analyzed",
+          "status": "Not Found",
+          "code": 404,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"error\": \"Profile 'unknownuser' has not been analyzed yet. POST /api/analyze/unknownuser first.\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Delete Profile",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/profiles/{{username}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "profiles", "{{username}}"]
+        },
+        "description": "Removes a stored profile from the database permanently."
+      },
+      "response": [
+        {
+          "name": "200 OK - Profile deleted",
+          "status": "OK",
+          "code": 200,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"message\": \"Profile deleted.\"\n}"
+        },
+        {
+          "name": "404 Not Found - Profile does not exist",
+          "status": "Not Found",
+          "code": 404,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"error\": \"Profile 'unknownuser' not found.\"\n}"
+        }
+      ]
+    }
+  ]
+}
